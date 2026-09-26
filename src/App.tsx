@@ -1,11 +1,10 @@
 import './App.css'
 
 function App() {
-
   return (
-    <>
-      <span>GREEN-API MAX Client</span>
-    </>
+    <main className="app">
+      <h1>GREEN-API MAX Client</h1>
+    </main>
   )
 }
 
