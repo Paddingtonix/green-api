@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { Chat } from './components/Chat'
 import { CredentialsForm } from './components/CredentialsForm'
 import {
   NewChatForm,
@@ -41,17 +42,11 @@ function App() {
 
   return (
     <main className="app">
-      <div className="form-card">
-        <h1>Чат готов</h1>
-
-        <p>
-          Phone: {chat.phoneNumber}
-        </p>
-
-        <p>
-          Chat ID: {chat.chatId}
-        </p>
-      </div>
+      <Chat
+        credentials={credentials}
+        chat={chat}
+        onBack={() => setChat(null)}
+      />
     </main>
   )
 }
