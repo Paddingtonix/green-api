@@ -74,16 +74,32 @@ export function sendMessage(
   )
 }
 
-export function receiveNotification(
+export async function receiveNotification(
   credentials: GreenApiCredentials,
   signal?: AbortSignal,
-) {
-  return request<GreenApiNotification | null>(
-    `${buildUrl(credentials, 'receiveNotification')}?receiveTimeout=5`,
+): Promise<GreenApiNotification | null> {
+  const response = await fetch(
+    `${buildUrl(credentials, 'receiveNotification')}?receiveTimeout=30`,
     {
       signal,
     },
   )
+
+  if (!response.ok) {
+    const message = await response.text()
+
+    throw new Error(
+      message || `GREEN-API request failed: ${response.status}`,
+    )
+  }
+
+  const text = await response.text()
+
+  if (!text) {
+    return null
+  }
+
+  return JSON.parse(text) as GreenApiNotification
 }
 
 export function deleteNotification(

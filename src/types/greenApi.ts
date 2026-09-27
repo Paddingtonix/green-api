@@ -22,3 +22,24 @@ export interface GreenApiNotification<TBody = unknown> {
   receiptId: number
   body: TBody
 }
+
+export interface IncomingTextMessageBody {
+  typeWebhook: 'incomingMessageReceived'
+
+  timestamp: number
+  idMessage: string
+
+  senderData: {
+    chatId: string
+    sender: string
+    senderName: string
+  }
+
+  messageData: {
+    typeMessage: 'textMessage'
+
+    textMessageData: {
+      textMessage: string
+    }
+  }
+}
