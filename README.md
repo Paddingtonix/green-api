@@ -1,75 +1,96 @@
-# React + TypeScript + Vite
+# GREEN-API MAX Chat
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Минимальный одностраничный чат для отправки и получения текстовых сообщений в мессенджере MAX через GREEN-API.
 
-Currently, two official plugins are available:
+## Возможности
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- ввод `idInstance` и `apiTokenInstance` без сохранения в исходниках;
+- проверка пользователя MAX по номеру телефона;
+- отправка текстовых сообщений;
+- получение входящих сообщений через последовательный long polling;
+- защита от дубликатов и подтверждение обработанных уведомлений;
+- понятные состояния отправки и ошибки GREEN-API;
+- автоскролл, многострочный ввод и адаптивный интерфейс.
 
-## React Compiler
+## Стек
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19;
+- TypeScript;
+- Vite;
+- CSS без UI-библиотек;
+- GREEN-API HTTP API для MAX.
 
-## Expanding the ESLint configuration
+## Требования
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Node.js 20.19+ или 22.12+;
+- npm;
+- авторизованный инстанс GREEN-API для мессенджера MAX.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Установка и запуск
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+После запуска откройте адрес, указанный Vite, и введите параметры доступа к инстансу.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Для production-сборки:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm run build
+npm run preview
 ```
+
+## Настройка GREEN-API
+
+1. Зарегистрируйтесь в [личном кабинете GREEN-API](https://console.green-api.com/).
+2. Создайте и авторизуйте инстанс MAX.
+3. Скопируйте `idInstance` и `apiTokenInstance` из карточки инстанса. При компрометации токена перевыпустите его в личном кабинете.
+4. В настройках инстанса включите получение уведомлений о входящих сообщениях (`incomingWebhook`).
+5. Для используемого в проекте получения через HTTP API оставьте Webhook URL пустым.
+
+Подробная последовательность описана в разделе GREEN-API [«Перед началом работы»](https://green-api.com/v3/docs/before-start/).
+
+Параметры доступа вводятся только в интерфейсе и хранятся в памяти вкладки. Не добавляйте реальные credentials в `.env`, README или исходный код.
+
+> Это клиентское тестовое приложение: браузер выполняет запросы к GREEN-API напрямую, поэтому токен виден владельцу вкладки в DevTools → Network. Для публичного production-приложения запросы нужно выполнять через собственный backend, который хранит токен на сервере.
+
+При необходимости базовый адрес API можно переопределить локальной переменной:
+
+```env
+VITE_GREEN_API_URL=https://api.green-api.com
+```
+
+## Ограничения тарифа MAX Developer
+
+Бесплатный тариф позволяет взаимодействовать максимум с тремя корреспондентами в месяц. При превышении квоты GREEN-API возвращает ошибку `466`. Метод `CheckAccount` также имеет месячный лимит. Актуальные ограничения приведены в [описании тарифов](https://green-api.com/v3/docs/about-tariffs/).
+
+Не проверяйте многократно несуществующие номера: MAX может временно ограничить такие запросы.
+
+## Ограничения приложения
+
+Прототип работает с одним активным чатом. История сообщений хранится только в состоянии приложения и не сохраняется после перезагрузки. Уведомления других чатов удаляются из FIFO-очереди GREEN-API, но не отображаются.
+
+## Архитектура
+
+```text
+src/
+├── api/             # HTTP-клиент и нормализация ошибок GREEN-API
+├── components/      # формы и UI чата
+├── hooks/           # lifecycle long polling уведомлений
+├── types/           # типы API и сообщений
+├── App.tsx          # переходы между экранами
+└── App.css          # стили и адаптив
+```
+
+`useNotifications` последовательно получает уведомление, принимает только текстовые входящие сообщения текущего чата и после обработки подтверждает уведомление через `DeleteNotification`. Неизвестные типы безопасно пропускаются и также удаляются из очереди.
+
+## Проверка качества
+
+```bash
+npm run lint
+npm run build
+```
+
+Перед публикацией дополнительно убедитесь, что в Git нет токенов и других credentials.

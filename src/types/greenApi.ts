@@ -43,3 +43,7 @@ export interface IncomingTextMessageBody {
     }
   }
 }
+
+export interface QuotaExceededBody {
+  typeWebhook: 'quotaExceeded'
+}

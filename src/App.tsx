@@ -2,11 +2,9 @@ import { useState } from 'react'
 
 import { Chat } from './components/Chat'
 import { CredentialsForm } from './components/CredentialsForm'
-import {
-  NewChatForm,
-  type ChatData,
-} from './components/NewChatForm'
+import { NewChatForm } from './components/NewChatForm'
 
+import type { ChatData } from './types/chat'
 import type { GreenApiCredentials } from './types/greenApi'
 
 import './App.css'

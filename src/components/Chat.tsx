@@ -1,18 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
-import {
-  deleteNotification,
-  receiveNotification,
-  sendMessage,
-} from '../api/greenApi'
+import { sendMessage } from '../api/greenApi'
+import { useNotifications } from '../hooks/useNotifications'
 
-import type { ChatMessage } from '../types/chat'
-import type {
-  GreenApiCredentials,
-  IncomingTextMessageBody,
-} from '../types/greenApi'
-
-import type { ChatData } from './NewChatForm'
+import type { ChatData, ChatMessage } from '../types/chat'
+import type { GreenApiCredentials } from '../types/greenApi'
 
 import { MessageInput } from './MessageInput'
 import { MessageList } from './MessageList'
@@ -23,26 +15,6 @@ interface ChatProps {
   onBack: () => void
 }
 
-function isIncomingTextMessage(
-  body: unknown,
-): body is IncomingTextMessageBody {
-  if (!body || typeof body !== 'object') {
-    return false
-  }
-
-  const notification = body as Partial<IncomingTextMessageBody>
-
-  return (
-    notification.typeWebhook === 'incomingMessageReceived' &&
-    notification.messageData?.typeMessage === 'textMessage' &&
-    typeof notification.messageData.textMessageData?.textMessage ===
-      'string' &&
-    typeof notification.senderData?.chatId === 'string' &&
-    typeof notification.idMessage === 'string' &&
-    typeof notification.timestamp === 'number'
-  )
-}
-
 export function Chat({
   credentials,
   chat,
@@ -51,83 +23,26 @@ export function Chat({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isSending, setIsSending] = useState(false)
 
-  useEffect(() => {
-    const controller = new AbortController()
+  const handleIncomingMessage = useCallback((message: ChatMessage) => {
+    setMessages((currentMessages) => {
+      const alreadyExists = currentMessages.some(
+        (currentMessage) => currentMessage.id === message.id,
+      )
 
-    const listen = async () => {
-      while (!controller.signal.aborted) {
-        try {
-          const notification = await receiveNotification(
-            credentials,
-            controller.signal,
-          )
+      return alreadyExists
+        ? currentMessages
+        : [...currentMessages, message]
+    })
+  }, [])
 
-          if (!notification) {
-            continue
-          }
-
-          console.log(
-            'GREEN-API notification:',
-            notification,
-          )
-
-          const { body, receiptId } = notification
-
-          if (isIncomingTextMessage(body)) {
-            const currentChatId = String(chat.chatId)
-            const incomingChatId = String(body.senderData.chatId)
-
-            if (incomingChatId === currentChatId) {
-              const incomingMessage: ChatMessage = {
-                id: body.idMessage,
-                text: body.messageData.textMessageData.textMessage,
-                direction: 'incoming',
-                timestamp: body.timestamp * 1000,
-              }
-
-              setMessages((currentMessages) => {
-                const alreadyExists = currentMessages.some(
-                  (message) => message.id === incomingMessage.id,
-                )
-
-                if (alreadyExists) {
-                  return currentMessages
-                }
-
-                return [
-                  ...currentMessages,
-                  incomingMessage,
-                ]
-              })
-            }
-          }
-
-          await deleteNotification(
-            credentials,
-            receiptId,
-          )
-        } catch (error) {
-          if (controller.signal.aborted) {
-            return
-          }
-
-          console.error(
-            'Receive notification error:',
-            error,
-          )
-        }
-      }
-    }
-
-    void listen()
-
-    return () => {
-      controller.abort()
-    }
-  }, [
+  const {
+    error: notificationsError,
+    notice: notificationsNotice,
+  } = useNotifications({
     credentials,
-    chat.chatId,
-  ])
+    chatId: chat.chatId,
+    onMessage: handleIncomingMessage,
+  })
 
   const handleSendMessage = async (
     text: string,
@@ -168,17 +83,16 @@ export function Chat({
         ),
       )
     } catch (error) {
-      console.error(
-        'Send message error:',
-        error,
-      )
-
       setMessages((currentMessages) =>
         currentMessages.map((message) =>
           message.id === localMessageId
             ? {
                 ...message,
                 status: 'error',
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : 'Не удалось отправить сообщение',
               }
             : message,
         ),
@@ -200,8 +114,12 @@ export function Chat({
           ←
         </button>
 
+        <div className="chat__avatar" aria-hidden="true">
+          M
+        </div>
+
         <div>
-          <strong>
+          <strong className="chat__title">
             +{chat.phoneNumber}
           </strong>
 
@@ -210,6 +128,14 @@ export function Chat({
           </div>
         </div>
       </header>
+
+      {(notificationsError || notificationsNotice) && (
+        <div className="chat__notice" role="status">
+          {notificationsError
+            ? `${notificationsError}. Повторяем попытку…`
+            : notificationsNotice}
+        </div>
+      )}
 
       <MessageList messages={messages} />
 

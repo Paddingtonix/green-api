@@ -4,12 +4,8 @@ import {
 } from 'react'
 
 import { checkAccount } from '../api/greenApi'
+import type { ChatData } from '../types/chat'
 import type { GreenApiCredentials } from '../types/greenApi'
-
-export interface ChatData {
-  chatId: string
-  phoneNumber: string
-}
 
 interface NewChatFormProps {
   credentials: GreenApiCredentials
@@ -33,7 +29,8 @@ export function NewChatForm({
 
     const normalizedPhone = phoneNumber.replace(/\D/g, '')
 
-    if (!normalizedPhone) {
+    if (!/^\d{10,15}$/.test(normalizedPhone)) {
+      setError('Введите номер в международном формате')
       return
     }
 
@@ -47,7 +44,7 @@ export function NewChatForm({
       )
 
       if (!account.exist || !account.chatId) {
-        setError('Аккаунт с таким номером не найден')
+        setError('Пользователь MAX не найден')
         return
       }
 
@@ -56,8 +53,6 @@ export function NewChatForm({
         phoneNumber: normalizedPhone,
       })
     } catch (error) {
-      console.error(error)
-
       setError(
         error instanceof Error
           ? error.message
@@ -82,6 +77,7 @@ export function NewChatForm({
 
         <input
           type="tel"
+          inputMode="numeric"
           value={phoneNumber}
           onChange={(event) =>
             setPhoneNumber(event.target.value)

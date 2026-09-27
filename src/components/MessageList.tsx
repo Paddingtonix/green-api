@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+
 import type { ChatMessage } from '../types/chat'
 
 interface MessageListProps {
@@ -14,6 +16,15 @@ function formatTime(timestamp: number) {
 export function MessageList({
   messages,
 }: MessageListProps) {
+  const listEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    listEndRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'end',
+    })
+  }, [messages])
+
   if (messages.length === 0) {
     return (
       <div className="message-list message-list--empty">
@@ -23,7 +34,7 @@ export function MessageList({
   }
 
   return (
-    <div className="message-list">
+    <div className="message-list" aria-live="polite">
       {messages.map((message) => (
         <div
           key={message.id}
@@ -46,14 +57,22 @@ export function MessageList({
 
               {message.direction === 'outgoing' &&
                 message.status === 'error' && (
-                  <span className="message__error">
-                    Ошибка
+                  <span className="message__error-mark" aria-hidden="true">
+                    !
                   </span>
                 )}
             </div>
+
+            {message.status === 'error' && (
+              <div className="message__error" role="alert">
+                {message.error ?? 'Не удалось отправить сообщение'}
+              </div>
+            )}
           </div>
         </div>
       ))}
+
+      <div ref={listEndRef} />
     </div>
   )
 }
